@@ -19,18 +19,35 @@ class EditPanel(ctk.CTkFrame):
 
         for i, (feature, (min_val, max_val, default)) in enumerate(self.features.items()):
             label = ctk.CTkLabel(self, text=feature)
-            label.grid(row=i*2, column=0, padx=10, pady=(10,0), sticky="w")
+            label.grid(row=i*2, column=0, padx=10, pady=(5,0), sticky="w")
 
             slider = ctk.CTkSlider(self, from_=min_val, to=max_val, command=self.on_slider_change)
             slider.set(default)
-            slider.grid(row=i*2+1, column=0, padx=10, pady=(0,10), sticky="ew")
+            slider.grid(row=i*2+1, column=0, padx=10, pady=(0,5), sticky="ew")
 
             self.sliders[feature] = slider
+        
+        #  Buttons for crop, flip, rotate
+        button_frame = ctk.CTkFrame(self)
+        button_frame.grid(row=len(self.features)*2, column=0, padx=10, pady=10, sticky="ew")
+        button_frame.columnconfigure((0,1,2), weight=1)
+
+        crop_btn = ctk.CTkButton(button_frame, text="Crop", width = 5)
+        crop_btn.grid(row=0, column=0, padx=5, pady=5, sticky="ew")
+
+        flip_btn = ctk.CTkButton(button_frame, text="Flip", width = 5)
+        flip_btn.grid(row=0, column=1, padx=5, pady=5, sticky="ew")
+
+        rotate_btn = ctk.CTkButton(button_frame, text="Rotate", width = 5)
+        rotate_btn.grid(row=0, column=2, padx=5, pady=5, sticky="ew")
 
         self.columnconfigure(0, weight=1)
+        
+        
 
     def on_slider_change(self, edits):
         # Called when any slider moves, send all slider values to main app
         values = {feature: slider.get() for feature, slider in self.sliders.items()}
         self.main_app.apply_edits(values)
         
+    

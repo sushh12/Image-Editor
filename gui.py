@@ -37,7 +37,7 @@ class App:
         # Edit panel (initially hidden)
         self.edit_panel = EditPanel(self.root, self)
         self.edit_panel.pack(side='right', fill='y')
-        self.edit_panel.pack_forget()  # hide initially
+        # self.edit_panel.pack_forget()  # hide initially
 
         
      # Open/import image
