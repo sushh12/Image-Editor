@@ -38,16 +38,36 @@ class EditPanel(ctk.CTkFrame):
         flip_btn = ctk.CTkButton(button_frame, text="Flip", width = 5)
         flip_btn.grid(row=0, column=1, padx=5, pady=5, sticky="ew")
 
-        rotate_btn = ctk.CTkButton(button_frame, text="Rotate", width = 5)
+        rotate_btn = ctk.CTkButton(button_frame, text="R", width = 5)
         rotate_btn.grid(row=0, column=2, padx=5, pady=5, sticky="ew")
+        
+        rotate_btn = ctk.CTkButton(button_frame, text="R", width = 5)
+        rotate_btn.grid(row=0, column=3, padx=5, pady=5, sticky="ew")
+
+        # Filter section label
+        filter_label = ctk.CTkLabel(self, text="Filters")
+        filter_label.grid(row=20, column=0, padx=10, pady=(10,0), sticky="w")
+
+        # Filter options list
+        self.filter_options = ["None", "Grayscale", "Sepia", "Invert", "Blur", "Emboss", "Edge Enhance"]
+        self.selected_filter = ctk.StringVar(value="None")
+
+        # Filter dropdown (OptionMenu)
+        self.filter_menu = ctk.CTkOptionMenu(self, values=self.filter_options, variable=self.selected_filter)
+        self.filter_menu.grid(row=21, column=0, padx=10, pady=5, sticky="ew")
+
+        # Apply Filter button
+        apply_filter_btn = ctk.CTkButton(self, text="Apply Filter")
+        apply_filter_btn.grid(row=22, column=0, padx=10, pady=5, sticky="ew")
 
         self.columnconfigure(0, weight=1)
         
-        
+    def apply_selected_filter(self):
+        """Get selected filter from dropdown and call main app function."""
+        filter_name = self.selected_filter.get().lower()  # convert to lowercase for backend function consistency
+        self.main_app.apply_filter(filter_name)
 
     def on_slider_change(self, edits):
         # Called when any slider moves, send all slider values to main app
         values = {feature: slider.get() for feature, slider in self.sliders.items()}
         self.main_app.apply_edits(values)
-        
-    
