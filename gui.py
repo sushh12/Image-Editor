@@ -20,11 +20,11 @@ class App:
         self.btn_frame.pack(side="top", fill="x")
         
         # Open Button
-        self.open_btn = ctk.CTkButton(self.btn_frame, text="Open", width=10, command=self.open_img).grid(row=0, column=0)
+        self.open_btn = ctk.CTkButton(self.btn_frame, text="Open", width=10).grid(row=0, column=0)
         # edit Button
         self.edit_btn = ctk.CTkButton(self.btn_frame, text="Edit", width=10, command=self.toggle_edit_panel).grid(row=0, column=1)
         # Save Button
-        self.save_btn = ctk.CTkButton(self.btn_frame, text="Save", width=10, command=self.save_img).grid(row=0, column=2)
+        self.save_btn = ctk.CTkButton(self.btn_frame, text="Save", width=10).grid(row=0, column=2)
         
         
         # Image Display Frame
@@ -62,11 +62,11 @@ class App:
     #     else:
     #         CTkMessagebox(title="Warning", message="image not found")
 		
-    # def toggle_edit_panel(self):
-    #     if self.edit_panel.winfo_ismapped():
-    #         self.edit_panel.pack_forget()
-    #     else:
-    #         self.edit_panel.pack(side='right', fill='y')
+    def toggle_edit_panel(self):
+        if self.edit_panel.winfo_ismapped():
+            self.edit_panel.pack_forget()
+        else:
+            self.edit_panel.pack(side='right', fill='y')
             
     def run(self):
         self.root.mainloop()
