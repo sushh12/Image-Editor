@@ -1,5 +1,5 @@
 import customtkinter as ctk
-
+from PIL import Image
 class EditPanel(ctk.CTkFrame):
     def __init__(self, master, main_app):
         super().__init__(master)
@@ -27,22 +27,28 @@ class EditPanel(ctk.CTkFrame):
 
             self.sliders[feature] = slider
         
+        # Example loading icons
+        crop_icon = ctk.CTkImage(Image.open("icons/crop.png"), size=(24,24))
+        flip_icon = ctk.CTkImage(Image.open("icons/flip.png"), size=(24,24))
+        rotateL_icon = ctk.CTkImage(Image.open("icons/rotate left.png"), size=(24,24))
+        rotateR_icon = ctk.CTkImage(Image.open("icons/rotate right.png"), size=(24,24))
+        
         #  Buttons for crop, flip, rotate
         button_frame = ctk.CTkFrame(self)
         button_frame.grid(row=len(self.features)*2, column=0, padx=10, pady=10, sticky="ew")
         button_frame.columnconfigure((0,1,2), weight=1)
 
-        crop_btn = ctk.CTkButton(button_frame, text="Crop", width = 5)
+        crop_btn = ctk.CTkButton(button_frame, text="", image=crop_icon, width=5)
         crop_btn.grid(row=0, column=0, padx=5, pady=5, sticky="ew")
 
-        flip_btn = ctk.CTkButton(button_frame, text="Flip", width = 5)
+        flip_btn = ctk.CTkButton(button_frame, text="", image=flip_icon, width=5)
         flip_btn.grid(row=0, column=1, padx=5, pady=5, sticky="ew")
 
-        rotate_btn = ctk.CTkButton(button_frame, text="R", width = 5)
-        rotate_btn.grid(row=0, column=2, padx=5, pady=5, sticky="ew")
+        rotateL_btn = ctk.CTkButton(button_frame, text="", image=rotateL_icon, width=5)
+        rotateL_btn.grid(row=0, column=2, padx=5, pady=5, sticky="ew")
         
-        rotate_btn = ctk.CTkButton(button_frame, text="R", width = 5)
-        rotate_btn.grid(row=0, column=3, padx=5, pady=5, sticky="ew")
+        rotateR_btn = ctk.CTkButton(button_frame, text="", image=rotateR_icon, width=5)
+        rotateR_btn.grid(row=0, column=3, padx=5, pady=5, sticky="ew")
 
         # Filter section label
         filter_label = ctk.CTkLabel(self, text="Filters")
