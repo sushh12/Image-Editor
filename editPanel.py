@@ -5,6 +5,7 @@ class EditPanel(ctk.CTkFrame):
         super().__init__(master)
         self.main_app = main_app
 
+        self.debounce = None
         self.sliders = {}
 
         # List of edit features with their ranges and default values
@@ -41,14 +42,15 @@ class EditPanel(ctk.CTkFrame):
         crop_btn = ctk.CTkButton(button_frame, text="", image=crop_icon, width=5)
         crop_btn.grid(row=0, column=0, padx=5, pady=5, sticky="ew")
 
-        flip_btn = ctk.CTkButton(button_frame, text="", image=flip_icon, width=5)
+        flip_btn = ctk.CTkButton(button_frame, text="", image=flip_icon, width=5, command=self.flip_image)
         flip_btn.grid(row=0, column=1, padx=5, pady=5, sticky="ew")
 
-        rotateL_btn = ctk.CTkButton(button_frame, text="", image=rotateL_icon, width=5)
+        rotateL_btn = ctk.CTkButton(button_frame, text="", image=rotateL_icon, width=5, command=self.rotate_left)
         rotateL_btn.grid(row=0, column=2, padx=5, pady=5, sticky="ew")
         
-        rotateR_btn = ctk.CTkButton(button_frame, text="", image=rotateR_icon, width=5)
+        rotateR_btn = ctk.CTkButton(button_frame, text="", image=rotateR_icon, width=5, command=self.rotate_right)
         rotateR_btn.grid(row=0, column=3, padx=5, pady=5, sticky="ew")
+        
 
         # Filter section label
         filter_label = ctk.CTkLabel(self, text="Filters")
@@ -67,13 +69,35 @@ class EditPanel(ctk.CTkFrame):
         apply_filter_btn.grid(row=22, column=0, padx=10, pady=5, sticky="ew")
 
         self.columnconfigure(0, weight=1)
-        
-    def apply_selected_filter(self):
-        """Get selected filter from dropdown and call main app function."""
-        filter_name = self.selected_filter.get().lower()  # convert to lowercase for backend function consistency
-        self.main_app.apply_filter(filter_name)
+    
+    def crop_image(self):
+        self.main_app.crop_image()
 
-    def on_slider_change(self, edits):
+    def flip_image(self):
+        self.main_app.flip_image()
+
+    def rotate_left(self):
+        self.main_app.rotate_image(90)
+
+    def rotate_right(self):
+        self.main_app.rotate_image(-90)
+        
+    def on_slider_change(self, values):
+        if self.debounce:
+            self.after_cancel(self.debounce)
         # Called when any slider moves, send all slider values to main app
         values = {feature: slider.get() for feature, slider in self.sliders.items()}
         self.main_app.apply_edits(values)
+        
+        # Wait 150 ms after slider stops moving to call apply_edits
+        self.debounce_job = self.after(150, self.apply_edits_debounced)
+
+    def apply_edits_debounced(self):
+        values = {feature: slider.get() for feature, slider in self.sliders.items()}
+        self.main_app.apply_edits(values)
+        
+    def reset_sliders(self):
+    # """Reset all sliders to their default values."""
+        for feature, slider in self.sliders.items():
+            default = self.features[feature][2]  # get default value from features dict
+            slider.set(default)
