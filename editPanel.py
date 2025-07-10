@@ -5,7 +5,7 @@ class EditPanel(ctk.CTkFrame):
         super().__init__(master)
         self.main_app = main_app
 
-        self.debounce = None
+        self.debounce_job = None
         self.sliders = {}
 
         # List of edit features with their ranges and default values
@@ -39,17 +39,13 @@ class EditPanel(ctk.CTkFrame):
         button_frame.grid(row=len(self.features)*2, column=0, padx=10, pady=10, sticky="ew")
         button_frame.columnconfigure((0,1,2), weight=1)
 
-        crop_btn = ctk.CTkButton(button_frame, text="", image=crop_icon, width=5)
-        crop_btn.grid(row=0, column=0, padx=5, pady=5, sticky="ew")
+        ctk.CTkButton(button_frame, text="", image=crop_icon, width=5).grid(row=0, column=0, padx=5, pady=5, sticky="ew")
 
-        flip_btn = ctk.CTkButton(button_frame, text="", image=flip_icon, width=5, command=self.flip_image)
-        flip_btn.grid(row=0, column=1, padx=5, pady=5, sticky="ew")
+        ctk.CTkButton(button_frame, text="", image=flip_icon, width=5, command=self.flip_image).grid(row=0, column=1, padx=5, pady=5, sticky="ew")
 
-        rotateL_btn = ctk.CTkButton(button_frame, text="", image=rotateL_icon, width=5, command=self.rotate_left)
-        rotateL_btn.grid(row=0, column=2, padx=5, pady=5, sticky="ew")
+        ctk.CTkButton(button_frame, text="", image=rotateL_icon, width=5, command=self.rotate_left).grid(row=0, column=2, padx=5, pady=5, sticky="ew")
         
-        rotateR_btn = ctk.CTkButton(button_frame, text="", image=rotateR_icon, width=5, command=self.rotate_right)
-        rotateR_btn.grid(row=0, column=3, padx=5, pady=5, sticky="ew")
+        ctk.CTkButton(button_frame, text="", image=rotateR_icon, width=5, command=self.rotate_right).grid(row=0, column=3, padx=5, pady=5, sticky="ew")
         
 
         # Filter section label
@@ -83,8 +79,8 @@ class EditPanel(ctk.CTkFrame):
         self.main_app.rotate_image(-90)
         
     def on_slider_change(self, values):
-        if self.debounce:
-            self.after_cancel(self.debounce)
+        if self.debounce_job:
+            self.after_cancel(self.debounce_job)
         # Called when any slider moves, send all slider values to main app
         values = {feature: slider.get() for feature, slider in self.sliders.items()}
         self.main_app.apply_edits(values)
