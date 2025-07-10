@@ -1,9 +1,8 @@
 # gui.py
 import customtkinter as ctk
-from customtkinter import CTkImage
 from CTkMessagebox import CTkMessagebox
 from tkinter import filedialog
-from PIL import Image, ImageOps, ImageEnhance, ImageFilter, ImageTk
+from PIL import Image, ImageOps, ImageEnhance, ImageTk
 
 from editPanel import EditPanel
 
@@ -58,7 +57,6 @@ class App:
         self.edit_panel.grid(row=1, column=1, sticky="ns")
         self.edit_panel.grid_remove()  # hide initially
 
-        
     # Open/import image
     def open_img(self):
         file_path = filedialog.askopenfilename(
@@ -90,8 +88,7 @@ class App:
         self.drag_data["y"] = event.y
             
     def apply_edits(self, values):
-        if self.original_img:
-            
+        if self.original_img: 
             img = self.original_img.copy()
             
             # Brightness
@@ -132,6 +129,9 @@ class App:
         if current_img is None:
             return
         
+        # Update current_img
+        self.current_img = current_img
+        
          # Canvas size
         canvas_width = int(self.image_canvas.winfo_width()) 
         canvas_height = int(self.image_canvas.winfo_height()) 
@@ -159,9 +159,6 @@ class App:
         center_y = canvas_height // 2
         self.image_id = self.image_canvas.create_image(center_x, center_y, anchor="center", image=self.tk_img)
         
-        # Update current_img
-        self.current_img = current_img
-
     def save_img(self):
         if self.current_img:
             file_path = filedialog.asksaveasfilename(filetypes=[("Image Files", "*.png *.jpg *.jpeg *.bmp")])
