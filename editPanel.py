@@ -15,7 +15,6 @@ class EditPanel(ctk.CTkFrame):
             "Exposure": (0.5, 1.5, 1.0),
             "Saturation": (0.0, 2.0, 1.0),
             "Highlights": (0.0, 1.0, 0.5),
-            "Sharpness": (0.0, 2.0, 1.0),
         }
 
         for i, (feature, (min_val, max_val, default)) in enumerate(self.features.items()):
@@ -39,14 +38,10 @@ class EditPanel(ctk.CTkFrame):
         button_frame.grid(row=len(self.features)*2, column=0, padx=10, pady=10, sticky="ew")
         button_frame.columnconfigure((0,1,2), weight=1)
 
-        ctk.CTkButton(button_frame, text="", image=crop_icon, width=5).grid(row=0, column=0, padx=5, pady=5, sticky="ew")
-
-        ctk.CTkButton(button_frame, text="", image=flip_icon, width=5, command=self.flip_image).grid(row=0, column=1, padx=5, pady=5, sticky="ew")
-
+        ctk.CTkButton(button_frame, text="", image=crop_icon, width=5, command=self.main_app.toggle_crop_mode).grid(row=0, column=0, padx=5, pady=5, sticky="ew")
+        ctk.CTkButton(button_frame, text="", image=flip_icon, width=5, command=self.main_app.flip_image).grid(row=0, column=1, padx=5, pady=5, sticky="ew")
         ctk.CTkButton(button_frame, text="", image=rotateL_icon, width=5, command=self.rotate_left).grid(row=0, column=2, padx=5, pady=5, sticky="ew")
-        
-        ctk.CTkButton(button_frame, text="", image=rotateR_icon, width=5, command=self.rotate_right).grid(row=0, column=3, padx=5, pady=5, sticky="ew")
-        
+        ctk.CTkButton(button_frame, text="", image=rotateR_icon, width=5, command=self.rotate_right).grid(row=0, column=3, padx=5, pady=5, sticky="ew") 
 
         # Filter section label
         filter_label = ctk.CTkLabel(self, text="Filters")
@@ -65,12 +60,6 @@ class EditPanel(ctk.CTkFrame):
         apply_filter_btn.grid(row=22, column=0, padx=10, pady=5, sticky="ew")
 
         self.columnconfigure(0, weight=1)
-    
-    def crop_image(self):
-        self.main_app.crop_image()
-
-    def flip_image(self):
-        self.main_app.flip_image()
 
     def rotate_left(self):
         self.main_app.rotate_image(90)

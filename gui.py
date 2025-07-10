@@ -1,5 +1,6 @@
 # gui.py
 import customtkinter as ctk
+import tkinter as tk
 from CTkMessagebox import CTkMessagebox
 from tkinter import filedialog
 from PIL import Image, ImageOps, ImageEnhance, ImageTk
@@ -12,15 +13,18 @@ class App:
         self.root.title("Image Editing Application")
         self.root.geometry("800x600")
         
+        # Initialization
         self.original_img = None
-        self.current_img = None      
+        self.current_img = None 
+        self.crop_mode = False
+        self.undo_stack = []
         
         # Configure grid layout
         self.root.grid_rowconfigure(1, weight=1)  # Row 1 will expand
         self.root.grid_columnconfigure(0, weight=1)  # Image column expands
         self.root.grid_columnconfigure(1, weight=0)  # Panel column static
         
-        # btn_frame Frame
+        # Top buttons Frame
         self.btn_frame = ctk.CTkFrame(self.root)
         self.btn_frame.grid(row=0, column=0, columnspan=2, sticky="ew")
 
@@ -33,24 +37,19 @@ class App:
         ctk.CTkButton(self.btn_frame, text="Edit", width=10, command=self.toggle_edit_panel).grid(row=0, column=1)
         # Save Button
         ctk.CTkButton(self.btn_frame, text="Save", width=10, command=self.save_img).grid(row=0, column=2)
+        # Undo button
+        ctk.CTkButton(self.btn_frame, text="Undo crop", width=10, command=self.undo).grid(row=0, column=3)
         
         # Image Display Frame
         self.image_frame = ctk.CTkFrame(self.root)
         self.image_frame.grid(row=1, column=0, sticky="nsew")
         
         # image display canvas
-        self.image_canvas = ctk.CTkCanvas(self.image_frame,width=500, height=500, bg="#272727",borderwidth=0, highlightthickness=0)
+        self.image_canvas = tk.Canvas(self.image_frame,width=500, height=500, bg="#272727",borderwidth=0, highlightthickness=0)
         self.image_canvas.place(relx=0.5, rely=0.5, anchor="center")
         
         # Initialize image_id for canvas image
-        self.image_id = None
-        
-        # Bind mouse events for dragging
-        self.image_canvas.bind("ButtonPress-1", self.start_drag)
-        self.image_canvas.bind("B1-Motion", self.do_drag)
-        
-        # Drag variables
-        self.drag_data = {"x":0, "y":0}
+        self.image_id = None  
         
         # Edit panel (initially hidden)
         self.edit_panel = EditPanel(self.root, self)
@@ -71,27 +70,11 @@ class App:
             # Reset sliders when new image is loaded
             self.edit_panel.reset_sliders()
             self.display_img(self.current_img)
- 
-    def start_drag(self, event):
-        self.drag_data["x"] = event.x
-        self.drag_data["y"] = event.y
-
-    def do_drag(self, event):
-        dx = event.x - self.drag_data["x"]
-        dy = event.y - self.drag_data["y"]
-
-        # Move image
-        if self.image_id:
-            self.image_canvas.move(self.image_id, dx, dy)
-
-        self.drag_data["x"] = event.x
-        self.drag_data["y"] = event.y
             
     def apply_edits(self, values):
-        if self.original_img: 
+        if self.current_img: 
             img = self.original_img.copy()
             
-            # Brightness
             enhancer = ImageEnhance.Brightness(img)
             img = enhancer.enhance(values["Brightness"])
             
@@ -103,17 +86,153 @@ class App:
             
             enhancer = ImageEnhance.Color(img)
             img = enhancer.enhance(values["Saturation"])
-            
-            enhancer = ImageEnhance.Sharpness(img)
-            img = enhancer.enhance(values["Brightness"])
 
             if values["Highlights"] > 0:
                 bright = img.point(lambda p: min(255, int(p * (1 + values["Highlights"]))))
                 img = Image.blend(img, bright, alpha=0.5)
-                
+            
             self.display_img(img)
+            
         else:
             CTkMessagebox(title="Warning", message="Invalid operation")
+
+    def toggle_crop_mode(self):
+        if not self.current_img:
+            CTkMessagebox(title="Warning", message="No image loaded")
+            return
+
+        if self.crop_mode:
+            # Exit crop mode: remove rectangle, scalers, button
+            if hasattr(self, 'crop_rect'):
+                self.image_canvas.delete(self.crop_rect)
+            if hasattr(self, 'scalers'):
+                for scaler in self.scalers:
+                    self.image_canvas.delete(scaler)
+            if hasattr(self, 'confirm_crop_btn'):
+                self.confirm_crop_btn.destroy()
+
+            self.crop_mode = False
+
+        else:
+            # Enter crop mode
+            self.crop_mode = True
+
+            # Initialize crop rectangle covering full canvas
+            canvas_width = self.image_canvas.winfo_width()
+            canvas_height = self.image_canvas.winfo_height()
+            x1, y1 = 0, 0
+            x2, y2 = canvas_width, canvas_height
+            self.crop_box = [x1, y1, x2, y2]
+
+            # Draw crop rectangle
+            self.crop_rect = self.image_canvas.create_rectangle(*self.crop_box, outline="red", width=2)
+
+            # Draw scalers/handles at corners
+            self.scalers = []
+            for x, y in self.get_scaler_positions():
+                handle = self.image_canvas.create_oval(x-5, y-5, x+5, y+5, fill="blue", tags="scaler")
+                self.scalers.append(handle)
+
+            # Bind events to scalers
+            self.image_canvas.tag_bind("scaler", "<ButtonPress-1>", self.on_scaler_press)
+            self.image_canvas.tag_bind("scaler", "<B1-Motion>", self.on_scaler_drag)
+
+            # Add confirm crop button below image
+            self.confirm_crop_btn = ctk.CTkButton(self.image_frame, text="Confirm Crop", command=self.confirm_crop)
+            self.confirm_crop_btn.place(relx=0.5, rely=0.95, anchor="s")
+
+    def get_scaler_positions(self):
+        x1, y1, x2, y2 = self.crop_box
+        return [
+            (x1, y1), (x2, y1),
+            (x2, y2), (x1, y2)
+        ]
+
+    def on_scaler_press(self, event):
+        self.dragged_scaler = self.image_canvas.find_withtag("current")[0]
+
+    def on_scaler_drag(self, event):
+        index = self.scalers.index(self.dragged_scaler)
+        # Update crop_box based on dragged scaler
+        if index == 0:
+            self.crop_box[0], self.crop_box[1] = event.x, event.y
+        elif index == 1:
+            self.crop_box[2], self.crop_box[1] = event.x, event.y
+        elif index == 2:
+            self.crop_box[2], self.crop_box[3] = event.x, event.y
+        elif index == 3:
+            self.crop_box[0], self.crop_box[3] = event.x, event.y
+
+        # Update rectangle and scalers
+        self.image_canvas.coords(self.crop_rect, *self.crop_box)
+        for i, (x, y) in enumerate(self.get_scaler_positions()):
+            self.image_canvas.coords(self.scalers[i], x-5, y-5, x+5, y+5)
+
+    def confirm_crop(self):
+        if not self.crop_box:
+            return
+
+        x1, y1, x2, y2 = self.crop_box
+
+        # Calculate displayed image dimensions
+        canvas_width = self.image_canvas.winfo_width()
+        canvas_height = self.image_canvas.winfo_height()
+        img_width, img_height = self.current_img.size
+
+        img_ratio = img_width / img_height
+        canvas_ratio = canvas_width / canvas_height
+
+        if img_ratio > canvas_ratio:
+            displayed_width = canvas_width
+            displayed_height = int(canvas_width / img_ratio)
+        else:
+            displayed_height = canvas_height
+            displayed_width = int(canvas_height * img_ratio)
+
+        # Calculate top-left of displayed image on canvas
+        center_x = canvas_width // 2
+        center_y = canvas_height // 2
+        img_x1 = center_x - displayed_width // 2
+        img_y1 = center_y - displayed_height // 2
+
+        # Adjust crop box relative to displayed image
+        rel_x1 = min(max(x1 - img_x1, 0), displayed_width)
+        rel_y1 = min(max(y1 - img_y1, 0), displayed_height)
+        rel_x2 = min(max(x2 - img_x1, 0), displayed_width)
+        rel_y2 = min(max(y2 - img_y1, 0), displayed_height)
+
+        # Map to original image coordinates
+        scale_x = img_width / displayed_width
+        scale_y = img_height / displayed_height
+
+        crop_coords = (
+            int(rel_x1 * scale_x),
+            int(rel_y1 * scale_y),
+            int(rel_x2 * scale_x),
+            int(rel_y2 * scale_y)
+        )
+
+        # Ensure coordinates are within original image bounds
+        crop_coords = (
+            max(0, min(img_width, crop_coords[0])),
+            max(0, min(img_height, crop_coords[1])),
+            max(0, min(img_width, crop_coords[2])),
+            max(0, min(img_height, crop_coords[3]))
+        )
+
+        self.push_undo()
+        # Crop and display image filling canvas
+        cropped_img = self.current_img.crop(crop_coords)
+        self.display_img(cropped_img)
+        
+        self.original_img = cropped_img.copy()
+        self.current_img = cropped_img.copy()
+
+        # Cleanup: remove crop UI elements
+        self.image_canvas.delete(self.crop_rect)
+        for scaler in self.scalers:
+            self.image_canvas.delete(scaler)
+        self.confirm_crop_btn.destroy()
 
     def flip_image(self):
         if self.current_img:
@@ -158,12 +277,36 @@ class App:
         center_x = canvas_width // 2
         center_y = canvas_height // 2
         self.image_id = self.image_canvas.create_image(center_x, center_y, anchor="center", image=self.tk_img)
-        
+    
+    def push_undo(self):
+        if self.current_img:
+            self.undo_stack.append((
+                self.original_img.copy(),
+                self.current_img.copy()))
+            
+    def undo(self):
+        if self.undo_stack:
+            last_original, last_current = self.undo_stack.pop()
+            self.original_img = last_original
+            self.display_img(last_current)
+        else:
+            CTkMessagebox(title="Info", message="Nothing to undo")
+                
     def save_img(self):
         if self.current_img:
-            file_path = filedialog.asksaveasfilename(filetypes=[("Image Files", "*.png *.jpg *.jpeg *.bmp")])
+            file_path = filedialog.asksaveasfilename(
+                defaultextension=".png",
+                filetypes=[("PNG files", "*.png"), ("JPEG files", "*.jpg *.jpeg"), ("BMP files", "*.bmp")])
             if file_path:
-                self.current_img.save(file_path)
+                try:
+                    # Get extension from file_path
+                    ext = file_path.split('.')[-1].lower()
+                    if ext not in ["png", "jpg", "jpeg", "bmp"]:
+                        file_path += ".png"  # default to png if no valid extension
+
+                    self.current_img.save(file_path)
+                except Exception as e:
+                    CTkMessagebox(title="Error", message=f"Failed to save image:\n{e}")
         else:
             CTkMessagebox(title="Warning", message="image not found")
 		
