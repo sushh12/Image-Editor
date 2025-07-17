@@ -18,30 +18,38 @@ class EditPanel(ctk.CTkFrame):
             "Highlights": (0.0, 1.0, 0.5),
         }
 
-        # Create sliders
-        for i, (feature, (min_val, max_val, default)) in enumerate(self.features.items()):
-            ctk.CTkLabel(self, text=feature).grid(row=i * 2, column=0, padx=10, pady=(5, 0), sticky="w")
-            slider = ctk.CTkSlider(self, from_=min_val, to=max_val, command=self.on_slider_change)
-            slider.set(default)
-            slider.grid(row=i * 2 + 1, column=0, padx=10, pady=(0, 5), sticky="ew")
-            self.sliders[feature] = slider
-
         # Load icons
         crop_icon = ctk.CTkImage(Image.open("icons/crop.png"), size=(24, 24))
         flip_icon = ctk.CTkImage(Image.open("icons/flip.png"), size=(24, 24))
         rotateL_icon = ctk.CTkImage(Image.open("icons/rotate left.png"), size=(24, 24))
         rotateR_icon = ctk.CTkImage(Image.open("icons/rotate right.png"), size=(24, 24))
+        back_icon = ctk.CTkImage(Image.open("icons/back.png"), size=(24, 24))
+
+        # Back button at top row
+        ctk.CTkButton(self, text="", image=back_icon, width=5, fg_color='transparent',
+                      hover_color="gray", command=self.main_app.toggle_edit_panel).grid(row=0, column=0, pady=5, sticky="nw")
+
+        # Create sliders starting from row 1 onwards
+        for i, (feature, (min_val, max_val, default)) in enumerate(self.features.items()):
+            row_num = i * 2 + 1  # Start from row=1 to leave row=0 for back button
+            ctk.CTkLabel(self, text=feature).grid(row=row_num, column=0, padx=10, pady=(5, 0), sticky="w")
+            slider = ctk.CTkSlider(self, from_=min_val, to=max_val, command=self.on_slider_change)
+            slider.set(default)
+            slider.grid(row=row_num + 1, column=0, padx=10, pady=(0, 5), sticky="ew")
+            self.sliders[feature] = slider
 
         # Buttons for crop, flip, rotate
         button_frame = ctk.CTkFrame(self)
-        button_frame.grid(row=len(self.features) * 2, column=0, padx=10, pady=10, sticky="ew")
+        button_frame.grid(row=len(self.features)*2 + 2, column=0, padx=10, pady=10, sticky="ew")
         button_frame.columnconfigure((0, 1, 2, 3), weight=1)
 
         ctk.CTkButton(button_frame, text="", image=crop_icon, width=5, command=self.main_app.toggle_crop_mode).grid(row=0, column=0, padx=5, pady=5, sticky="ew")
-        ctk.CTkButton(button_frame, text="", image=flip_icon, width=5, command=self.main_app.flip_image).grid(row=0,column=1,padx=5,pady=5,sticky="ew")
-        ctk.CTkButton(button_frame, text="", image=rotateL_icon, width=5, command=self.rotate_left).grid(row=0,column=2,padx=5, pady=5,sticky="ew")
-        ctk.CTkButton(button_frame, text="", image=rotateR_icon, width=5, command=self.rotate_right).grid(row=0,column=3,padx=5,pady=5,sticky="ew")
-        ctk.CTkButton(self, text="Filters", width=10, command=self.main_app.toggle_filter_panel).grid(row=11,padx=5,pady=5, sticky="nswe")
+        ctk.CTkButton(button_frame, text="", image=flip_icon, width=5, command=self.main_app.flip_image).grid(row=0, column=1, padx=5, pady=5, sticky="ew")
+        ctk.CTkButton(button_frame, text="", image=rotateL_icon, width=5, command=self.rotate_left).grid(row=0, column=2, padx=5, pady=5, sticky="ew")
+        ctk.CTkButton(button_frame, text="", image=rotateR_icon, width=5, command=self.rotate_right).grid(row=0, column=3, padx=5, pady=5, sticky="ew")
+
+        # Filters button
+        ctk.CTkButton(self, text="Filters", width=10, command=self.main_app.toggle_filter_panel).grid(row=len(self.features)*2 + 3, padx=5, pady=5, sticky="nswe")
 
     def rotate_left(self):
         self.main_app.rotate_image(90)

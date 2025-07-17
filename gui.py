@@ -16,6 +16,7 @@ class App:
         # Initialization
         self.original_img = None
         self.current_img = None
+        self.base_img = None
         self.crop_mode = False
         self.undo_stack = []
 
@@ -70,6 +71,7 @@ class App:
         if file_path:
             self.original_img = Image.open(file_path)
             self.original_img = ImageOps.exif_transpose(self.original_img)
+            self.base_img = self.original_img.copy()
             self.current_img = self.original_img.copy()
 
             # Reset sliders when new image is loaded
@@ -78,15 +80,33 @@ class App:
 
     def apply_edits(self, values):
         if self.current_img:
-            img = self.original_img.copy()
-            img = ImageEnhance.Brightness(img).enhance(values["Brightness"])
-            img = ImageEnhance.Contrast(img).enhance(values["Contrast"])
-            img = ImageEnhance.Brightness(img).enhance(values["Exposure"])
-            img = ImageEnhance.Color(img).enhance(values["Saturation"])
+            img = self.base_img.copy()
+
+            # 1. Exposure (simple linear brightening)
+            exposure_factor = values["Exposure"]
+            if exposure_factor != 1.0:
+                img = img.point(lambda p: min(255, int(p * exposure_factor)))
+
+            # 2. Brightness (using enhancer)
+            brightness_factor = values["Brightness"]
+            if brightness_factor != 1.0:
+                img = ImageEnhance.Brightness(img).enhance(brightness_factor)
+
+            # 3. Contrast
+            contrast_factor = values["Contrast"]
+            if contrast_factor != 1.0:
+                img = ImageEnhance.Contrast(img).enhance(contrast_factor)
+
+            # 4. Saturation
+            saturation_factor = values["Saturation"]
+            if saturation_factor != 1.0:
+                img = ImageEnhance.Color(img).enhance(saturation_factor)
+            
+            # 5.Highlights
             if values["Highlights"] > 0:
                 bright = img.point(lambda p: min(255, int(p * (1 + values["Highlights"]))))
                 img = Image.blend(img, bright, alpha=0.5)
-            self.push_undo()
+                
             self.display_img(img)
         else:
             CTkMessagebox(title="Warning", message="Invalid operation")
@@ -143,6 +163,8 @@ class App:
         self.dragged_scaler = self.image_canvas.find_withtag("current")[0]
 
     def on_scaler_drag(self, event):
+        event.x = max(0, min(event.x, self.image_canvas.winfo_width()))
+        event.y = max(0, min(event.y, self.image_canvas.winfo_height()))
         index = self.scalers.index(self.dragged_scaler)
         # Update crop_box based on dragged scaler
         if index == 0:
@@ -217,6 +239,7 @@ class App:
         self.display_img(cropped_img)
 
         self.original_img = cropped_img.copy()
+        self.base_img = cropped_img.copy()
         self.current_img = cropped_img.copy()
 
         # Cleanup: remove crop UI elements
