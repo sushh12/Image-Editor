@@ -10,7 +10,7 @@ from filterPanel import FilterPanel
 class App:
     def __init__(self):
         self.root = ctk.CTk()
-        self.root.title("Image Editing Application")
+        self.root.title("PhotoEditor")
         self.root.geometry("800x600")
 
         # Initialization
