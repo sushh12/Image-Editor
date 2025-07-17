@@ -45,7 +45,7 @@ class App:
         self.image_frame.grid(row=1, column=0, sticky="nsew")
 
         # Image display canvas
-        self.image_canvas = tk.Canvas(self.image_frame, width=500, height=500, bg="#272727", borderwidth=0, highlightthickness=0)
+        self.image_canvas = tk.Canvas(self.image_frame, width=600, height=600, bg="#272727", borderwidth=0, highlightthickness=0)
         self.image_canvas.place(relx=0.5, rely=0.5, anchor="center")
 
         # Initialize image_id for canvas image

@@ -17,7 +17,7 @@ class FilterPanel(ctk.CTkFrame):
         back_icon = ctk.CTkImage(Image.open("icons/back.png"), size=(24, 24))
         # Place back button once, outside loop
         self.back_btn = ctk.CTkButton(self, text="", image=back_icon, width=5, fg_color='transparent', hover_color="gray",
-                      command=self.app.toggle_filter_panel).grid(row=0, column=0, columnspan=2, pady=5, sticky="nw")
+                                      command=self.app.toggle_filter_panel).grid(row=0, column=0, columnspan=2, pady=5, sticky="nw")
 
         for i, filter_name in enumerate(self.filters):
             # filter label with preview
@@ -63,16 +63,12 @@ class FilterPanel(ctk.CTkFrame):
         return img
 
     def apply_filter(self, filter_name):
-        if filter_name == "Original":
-            if self.app.original_img is not None:
-                filtered = self.app.original_img.copy()
-            else:
-                return
-        else:
-            if self.app.current_img is None:
-                return
-            img = self.app.current_img.copy()
-            filtered = self.apply_filter_effect(img, filter_name)
+        if self.app.original_img is None:
+            return
+
+        img = self.app.original_img.copy()
+        filtered = self.apply_filter_effect(img, filter_name)
 
         self.app.display_img(filtered)
         self.app.current_img = filtered
+

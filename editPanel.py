@@ -41,7 +41,7 @@ class EditPanel(ctk.CTkFrame):
         ctk.CTkButton(button_frame, text="", image=flip_icon, width=5, command=self.main_app.flip_image).grid(row=0,column=1,padx=5,pady=5,sticky="ew")
         ctk.CTkButton(button_frame, text="", image=rotateL_icon, width=5, command=self.rotate_left).grid(row=0,column=2,padx=5, pady=5,sticky="ew")
         ctk.CTkButton(button_frame, text="", image=rotateR_icon, width=5, command=self.rotate_right).grid(row=0,column=3,padx=5,pady=5,sticky="ew")
-        ctk.CTkButton(button_frame, text="Filters", width=10, command=self.main_app.toggle_filter_panel).grid(row=1, column=1, sticky="ew")
+        ctk.CTkButton(self, text="Filters", width=10, command=self.main_app.toggle_filter_panel).grid(row=11,padx=5,pady=5, sticky="nswe")
 
     def rotate_left(self):
         self.main_app.rotate_image(90)
