@@ -1,4 +1,3 @@
-# gui.py
 import customtkinter as ctk
 import tkinter as tk
 from CTkMessagebox import CTkMessagebox
@@ -6,55 +5,61 @@ from tkinter import filedialog
 from PIL import Image, ImageOps, ImageEnhance, ImageTk
 
 from editPanel import EditPanel
+from filterPanel import FilterPanel
 
 class App:
     def __init__(self):
         self.root = ctk.CTk()
         self.root.title("Image Editing Application")
         self.root.geometry("800x600")
-        
+
         # Initialization
         self.original_img = None
-        self.current_img = None 
+        self.current_img = None
         self.crop_mode = False
         self.undo_stack = []
-        
+
         # Configure grid layout
         self.root.grid_rowconfigure(1, weight=1)  # Row 1 will expand
         self.root.grid_columnconfigure(0, weight=1)  # Image column expands
         self.root.grid_columnconfigure(1, weight=0)  # Panel column static
-        
+
         # Top buttons Frame
         self.btn_frame = ctk.CTkFrame(self.root)
         self.btn_frame.grid(row=0, column=0, columnspan=2, sticky="ew")
 
         # Configure column weights for buttons to adjust spacing as needed
-        self.btn_frame.columnconfigure((0,1,2), weight=0)
-        
+        self.btn_frame.columnconfigure((0, 1, 2), weight=0)
+
         # Open Button
         ctk.CTkButton(self.btn_frame, text="Open", width=10, command=self.open_img).grid(row=0, column=0)
         # edit Button
         ctk.CTkButton(self.btn_frame, text="Edit", width=10, command=self.toggle_edit_panel).grid(row=0, column=1)
         # Save Button
         ctk.CTkButton(self.btn_frame, text="Save", width=10, command=self.save_img).grid(row=0, column=2)
-        # Undo button
-        ctk.CTkButton(self.btn_frame, text="Undo crop", width=10, command=self.undo).grid(row=0, column=3)
-        
+        # Undo Button
+        ctk.CTkButton(self.btn_frame, text="Undo", width=10, command=self.undo).grid(row=0, column=3)
+
         # Image Display Frame
         self.image_frame = ctk.CTkFrame(self.root)
         self.image_frame.grid(row=1, column=0, sticky="nsew")
-        
-        # image display canvas
-        self.image_canvas = tk.Canvas(self.image_frame,width=500, height=500, bg="#272727",borderwidth=0, highlightthickness=0)
+
+        # Image display canvas
+        self.image_canvas = tk.Canvas(self.image_frame, width=500, height=500, bg="#272727", borderwidth=0, highlightthickness=0)
         self.image_canvas.place(relx=0.5, rely=0.5, anchor="center")
-        
+
         # Initialize image_id for canvas image
-        self.image_id = None  
-        
+        self.image_id = None
+
         # Edit panel (initially hidden)
         self.edit_panel = EditPanel(self.root, self)
         self.edit_panel.grid(row=1, column=1, sticky="ns")
         self.edit_panel.grid_remove()  # hide initially
+
+        # Filter panel (right side)
+        self.filter_panel = FilterPanel(self.root, self)
+        self.filter_panel.grid(row=0, column=2, sticky="ns")
+        self.filter_panel.grid_remove()  # hide initially
 
     # Open/import image
     def open_img(self):
@@ -66,33 +71,23 @@ class App:
             self.original_img = Image.open(file_path)
             self.original_img = ImageOps.exif_transpose(self.original_img)
             self.current_img = self.original_img.copy()
-            
+
             # Reset sliders when new image is loaded
             self.edit_panel.reset_sliders()
             self.display_img(self.current_img)
-            
-    def apply_edits(self, values):
-        if self.current_img: 
-            img = self.original_img.copy()
-            
-            enhancer = ImageEnhance.Brightness(img)
-            img = enhancer.enhance(values["Brightness"])
-            
-            enhancer = ImageEnhance.Contrast(img)
-            img = enhancer.enhance(values["Contrast"])
-            
-            enhancer = ImageEnhance.Brightness(img)
-            img = enhancer.enhance(values["Exposure"])
-            
-            enhancer = ImageEnhance.Color(img)
-            img = enhancer.enhance(values["Saturation"])
 
+    def apply_edits(self, values):
+        if self.current_img:
+            img = self.original_img.copy()
+            img = ImageEnhance.Brightness(img).enhance(values["Brightness"])
+            img = ImageEnhance.Contrast(img).enhance(values["Contrast"])
+            img = ImageEnhance.Brightness(img).enhance(values["Exposure"])
+            img = ImageEnhance.Color(img).enhance(values["Saturation"])
             if values["Highlights"] > 0:
                 bright = img.point(lambda p: min(255, int(p * (1 + values["Highlights"]))))
                 img = Image.blend(img, bright, alpha=0.5)
-            
+            self.push_undo()
             self.display_img(img)
-            
         else:
             CTkMessagebox(title="Warning", message="Invalid operation")
 
@@ -100,7 +95,6 @@ class App:
         if not self.current_img:
             CTkMessagebox(title="Warning", message="No image loaded")
             return
-
         if self.crop_mode:
             # Exit crop mode: remove rectangle, scalers, button
             if hasattr(self, 'crop_rect'):
@@ -110,13 +104,10 @@ class App:
                     self.image_canvas.delete(scaler)
             if hasattr(self, 'confirm_crop_btn'):
                 self.confirm_crop_btn.destroy()
-
             self.crop_mode = False
-
         else:
             # Enter crop mode
             self.crop_mode = True
-
             # Initialize crop rectangle covering full canvas
             canvas_width = self.image_canvas.winfo_width()
             canvas_height = self.image_canvas.winfo_height()
@@ -130,7 +121,7 @@ class App:
             # Draw scalers/handles at corners
             self.scalers = []
             for x, y in self.get_scaler_positions():
-                handle = self.image_canvas.create_oval(x-5, y-5, x+5, y+5, fill="blue", tags="scaler")
+                handle = self.image_canvas.create_oval(x - 5, y - 5, x + 5, y + 5, fill="blue", tags="scaler")
                 self.scalers.append(handle)
 
             # Bind events to scalers
@@ -166,7 +157,7 @@ class App:
         # Update rectangle and scalers
         self.image_canvas.coords(self.crop_rect, *self.crop_box)
         for i, (x, y) in enumerate(self.get_scaler_positions()):
-            self.image_canvas.coords(self.scalers[i], x-5, y-5, x+5, y+5)
+            self.image_canvas.coords(self.scalers[i], x - 5, y - 5, x + 5, y + 5)
 
     def confirm_crop(self):
         if not self.crop_box:
@@ -224,7 +215,7 @@ class App:
         # Crop and display image filling canvas
         cropped_img = self.current_img.crop(crop_coords)
         self.display_img(cropped_img)
-        
+
         self.original_img = cropped_img.copy()
         self.current_img = cropped_img.copy()
 
@@ -247,13 +238,11 @@ class App:
     def display_img(self, current_img):
         if current_img is None:
             return
-        
         # Update current_img
         self.current_img = current_img
-        
-         # Canvas size
-        canvas_width = int(self.image_canvas.winfo_width()) 
-        canvas_height = int(self.image_canvas.winfo_height()) 
+        # Canvas size
+        canvas_width = int(self.image_canvas.winfo_width())
+        canvas_height = int(self.image_canvas.winfo_height())
 
         # Calculate aspect ratio to fit without cropping
         img_ratio = self.current_img.width / self.current_img.height
@@ -268,30 +257,38 @@ class App:
 
         resized_image = current_img.resize((new_width, new_height), Image.Resampling.LANCZOS)
         self.tk_img = ImageTk.PhotoImage(resized_image)
-            
+
         # Delete previous image if any
         if self.image_id:
             self.image_canvas.delete(self.image_id)
-        
+
         # Display image created
         center_x = canvas_width // 2
         center_y = canvas_height // 2
         self.image_id = self.image_canvas.create_image(center_x, center_y, anchor="center", image=self.tk_img)
-    
+
     def push_undo(self):
         if self.current_img:
+            slider_values = {feature: slider.get() for feature, slider in self.edit_panel.sliders.items()}
             self.undo_stack.append((
                 self.original_img.copy(),
-                self.current_img.copy()))
-            
+                self.current_img.copy(),
+                slider_values))
+
     def undo(self):
         if self.undo_stack:
-            last_original, last_current = self.undo_stack.pop()
+            last_original, last_current, last_sliders = self.undo_stack.pop()
             self.original_img = last_original
             self.display_img(last_current)
+
+            # Temporarily disable slider callbacks
+            self.edit_panel.disable_slider_callback = True
+            for feature, value in last_sliders.items():
+                self.edit_panel.sliders[feature].set(value)
+            self.edit_panel.disable_slider_callback = False
         else:
             CTkMessagebox(title="Info", message="Nothing to undo")
-                
+
     def save_img(self):
         if self.current_img:
             file_path = filedialog.asksaveasfilename(
@@ -309,16 +306,26 @@ class App:
                     CTkMessagebox(title="Error", message=f"Failed to save image:\n{e}")
         else:
             CTkMessagebox(title="Warning", message="image not found")
-		
+
     def toggle_edit_panel(self):
         if self.edit_panel.winfo_ismapped():
             self.edit_panel.grid_remove()
         else:
             self.edit_panel.grid(row=1, column=1, sticky="ns")
-   
+
+    def toggle_filter_panel(self):
+        if self.filter_panel.winfo_ismapped():
+            self.filter_panel.grid_remove()
+            self.edit_panel.grid()
+        else:
+            if self.current_img:
+                self.filter_panel.generate_thumbnails(self.current_img)
+            self.filter_panel.grid(row=1, column=2, sticky="ns")
+            self.edit_panel.grid_remove()
+
     def run(self):
         self.root.mainloop()
-        
+
 if __name__ == "__main__":
     app = App()
     app.run()
