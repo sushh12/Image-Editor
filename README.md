@@ -24,7 +24,9 @@ A desktop photo editor built with Python, customtkinter, and Pillow. Supports co
 
 ## Tech Stack
 
+
 | Tool | Purpose |
+|---|---|
 | Python | Core language |
 | customtkinter | Modern UI framework |
 | Pillow (PIL) | Image processing |
